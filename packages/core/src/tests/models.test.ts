@@ -171,3 +171,27 @@ describe("Environment Variable Integration", () => {
         expect(togetherConfig.model[ModelClass.LARGE]).toBe("meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo");
     });
 });
+);
+});
+
+describe("Environment Variable Integration", () => {
+    test("should use environment variables for LlamaCloud models", () => {
+        const llamaConfig = models[ModelProviderName.LLAMACLOUD];
+        expect(llamaConfig.model[ModelClass.SMALL]).toBe(
+            "meta-llama/Llama-3.2-3B-Instruct-Turbo"
+        );
+        expect(llamaConfig.model[ModelClass.LARGE]).toBe(
+            "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+        );
+    });
+
+    test("should use environment variables for Together models", () => {
+        const togetherConfig = models[ModelProviderName.TOGETHER];
+        expect(togetherConfig.model[ModelClass.SMALL]).toBe(
+            "meta-llama/Llama-3.2-3B-Instruct-Turbo"
+        );
+        expect(togetherConfig.model[ModelClass.LARGE]).toBe(
+            "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo"
+        );
+    });
+});

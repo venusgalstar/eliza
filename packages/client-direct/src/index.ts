@@ -232,6 +232,8 @@ export class DirectClient {
                     createdAt: Date.now(),
                 };
 
+                console.log("memory generate", memory);
+
                 await agent.messageManager.addEmbeddingToMemory(memory);
                 await agent.messageManager.createMemory(memory);
 
@@ -331,6 +333,8 @@ export class DirectClient {
 
                 const memory =
                     await agent.messageManager.getMemoryById(messageId);
+
+                console.log("memory", memory);
 
                 res.json({
                     data: memory ? memory.content : "",
