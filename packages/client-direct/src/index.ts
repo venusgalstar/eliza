@@ -7,7 +7,9 @@ import {
     generateCaption,
     generateImage,
     Media,
-    getEmbeddingZeroVector
+    getEmbeddingZeroVector,
+    validateCharacterConfig,
+    defaultCharacter,
 } from "@elizaos/core";
 import { composeContext } from "@elizaos/core";
 import { generateMessageResponse } from "@elizaos/core";
@@ -155,6 +157,184 @@ export class DirectClient {
 
                 const data = await response.json();
                 res.json(data);
+            }
+        );
+
+        this.app.post(
+            "/generate",
+            async (req: express.Request, res: express.Response) => {
+                const { hash, from, to, nonce, value, data } = req.body;
+                const agentId = "chain";
+
+                console.log("req.body", req.body);
+                console.log("agentId", agentId);
+
+                let agent = this.agents.get(agentId);
+
+                // update character
+                if (!agent) {
+                    const character = defaultCharacter;
+                    try {
+                        validateCharacterConfig(character);
+                    } catch (e) {
+                        elizaLogger.error(`Error parsing character: ${e}`);
+                        res.status(400).json({
+                            success: false,
+                            message: e.message,
+                        });
+                        return;
+                    }
+
+                    agent = await this.startAgent(character);
+                    elizaLogger.log(`${character.name} started`);
+                }
+
+                const roomId = stringToUuid(
+                    req.body.roomId ?? "default-room-" + agentId
+                );
+
+                const userId = stringToUuid(from ?? "user");
+
+                await agent.ensureConnection(
+                    userId,
+                    roomId,
+                    userId,
+                    stringToUuid(to ?? "user"),
+                    "direct"
+                );
+
+                const text = `${nonce}th transaction with ${value} amount ${data}`;
+                const messageId = stringToUuid(hash);
+
+                const attachments: Media[] = [];
+
+                const content: Content = {
+                    text,
+                    attachments,
+                    source: "direct",
+                    inReplyTo: undefined,
+                };
+
+                const userMessage = {
+                    content,
+                    userId,
+                    roomId,
+                    agentId: agent.agentId,
+                };
+
+                const memory: Memory = {
+                    id: stringToUuid(messageId),
+                    ...userMessage,
+                    agentId: agent.agentId,
+                    userId,
+                    roomId,
+                    content,
+                    createdAt: Date.now(),
+                };
+
+                await agent.messageManager.addEmbeddingToMemory(memory);
+                await agent.messageManager.createMemory(memory);
+
+                let state = await agent.composeState(userMessage, {
+                    agentName: agent.character.name,
+                });
+
+                const context = composeContext({
+                    state,
+                    template: messageHandlerTemplate,
+                });
+
+                const response = await generateMessageResponse({
+                    runtime: agent,
+                    context,
+                    modelClass: ModelClass.LARGE,
+                });
+
+                if (!response) {
+                    res.status(500).send(
+                        "No response from generateMessageResponse"
+                    );
+                    return;
+                }
+
+                // save response to memory
+                const responseMessage: Memory = {
+                    id: stringToUuid(messageId + "-" + agent.agentId),
+                    ...userMessage,
+                    userId: agent.agentId,
+                    content: response,
+                    embedding: getEmbeddingZeroVector(),
+                    createdAt: Date.now(),
+                };
+
+                await agent.messageManager.createMemory(responseMessage);
+
+                state = await agent.updateRecentMessageState(state);
+
+                let message = null as Content | null;
+
+                await agent.processActions(
+                    memory,
+                    [responseMessage],
+                    state,
+                    async (newMessages) => {
+                        message = newMessages;
+                        return [memory];
+                    }
+                );
+
+                await agent.evaluate(memory, state);
+
+                // Check if we should suppress the initial message
+                const action = agent.actions.find(
+                    (a) => a.name === response.action
+                );
+                const shouldSuppressInitialMessage =
+                    action?.suppressInitialMessage;
+
+                if (!shouldSuppressInitialMessage) {
+                    if (message) {
+                        res.json({ data: [response, message] });
+                    } else {
+                        res.json({ data: [response] });
+                    }
+                } else {
+                    if (message) {
+                        res.json({ data: [message] });
+                    } else {
+                        res.json({ data: "" });
+                    }
+                }
+            }
+        );
+
+        this.app.post(
+            "/getGenerated",
+            async (req: express.Request, res: express.Response) => {
+                const { hash } = req.body;
+                const agentId = "chain";
+
+                console.log("req.body", req.body);
+                console.log("agentId", agentId);
+
+                let agent = this.agents.get(agentId);
+
+                // update character
+                if (!agent) {
+                    res.json({
+                        data: "",
+                    });
+                    return;
+                }
+
+                const messageId = stringToUuid(hash);
+
+                const memory =
+                    await agent.messageManager.getMemoryById(messageId);
+
+                res.json({
+                    data: memory ? memory.content : "",
+                });
             }
         );
 
@@ -368,6 +548,7 @@ export class DirectClient {
                 }
             }
         );
+
         this.app.get(
             "/fine-tune/:assetId",
             async (req: express.Request, res: express.Response) => {
@@ -447,7 +628,9 @@ export class DirectClient {
 
         this.app.post("/:agentId/speak", async (req, res) => {
             const agentId = req.params.agentId;
-            const roomId = stringToUuid(req.body.roomId ?? "default-room-" + agentId);
+            const roomId = stringToUuid(
+                req.body.roomId ?? "default-room-" + agentId
+            );
             const userId = stringToUuid(req.body.userId ?? "user");
             const text = req.body.text;
 
@@ -461,7 +644,8 @@ export class DirectClient {
             // if runtime is null, look for runtime with the same name
             if (!runtime) {
                 runtime = Array.from(this.agents.values()).find(
-                    (a) => a.character.name.toLowerCase() === agentId.toLowerCase()
+                    (a) =>
+                        a.character.name.toLowerCase() === agentId.toLowerCase()
                 );
             }
 
@@ -532,7 +716,9 @@ export class DirectClient {
                 await runtime.messageManager.createMemory(responseMessage);
 
                 if (!response) {
-                    res.status(500).send("No response from generateMessageResponse");
+                    res.status(500).send(
+                        "No response from generateMessageResponse"
+                    );
                     return;
                 }
 
@@ -566,35 +752,51 @@ export class DirectClient {
                     },
                     body: JSON.stringify({
                         text: textToSpeak,
-                        model_id: process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2",
+                        model_id:
+                            process.env.ELEVENLABS_MODEL_ID ||
+                            "eleven_multilingual_v2",
                         voice_settings: {
-                            stability: parseFloat(process.env.ELEVENLABS_VOICE_STABILITY || "0.5"),
-                            similarity_boost: parseFloat(process.env.ELEVENLABS_VOICE_SIMILARITY_BOOST || "0.9"),
-                            style: parseFloat(process.env.ELEVENLABS_VOICE_STYLE || "0.66"),
-                            use_speaker_boost: process.env.ELEVENLABS_VOICE_USE_SPEAKER_BOOST === "true",
+                            stability: parseFloat(
+                                process.env.ELEVENLABS_VOICE_STABILITY || "0.5"
+                            ),
+                            similarity_boost: parseFloat(
+                                process.env.ELEVENLABS_VOICE_SIMILARITY_BOOST ||
+                                    "0.9"
+                            ),
+                            style: parseFloat(
+                                process.env.ELEVENLABS_VOICE_STYLE || "0.66"
+                            ),
+                            use_speaker_boost:
+                                process.env
+                                    .ELEVENLABS_VOICE_USE_SPEAKER_BOOST ===
+                                "true",
                         },
                     }),
                 });
 
                 if (!speechResponse.ok) {
-                    throw new Error(`ElevenLabs API error: ${speechResponse.statusText}`);
+                    throw new Error(
+                        `ElevenLabs API error: ${speechResponse.statusText}`
+                    );
                 }
 
                 const audioBuffer = await speechResponse.arrayBuffer();
 
                 // Set appropriate headers for audio streaming
                 res.set({
-                    'Content-Type': 'audio/mpeg',
-                    'Transfer-Encoding': 'chunked'
+                    "Content-Type": "audio/mpeg",
+                    "Transfer-Encoding": "chunked",
                 });
 
                 res.send(Buffer.from(audioBuffer));
-
             } catch (error) {
-                console.error("Error processing message or generating speech:", error);
+                console.error(
+                    "Error processing message or generating speech:",
+                    error
+                );
                 res.status(500).json({
                     error: "Error processing message or generating speech",
-                    details: error.message
+                    details: error.message,
                 });
             }
         });
@@ -610,7 +812,7 @@ export class DirectClient {
     }
 
     public start(port: number) {
-        this.server = this.app.listen(port, () => {
+        this.server = this.app.listen(port, "0.0.0.0", () => {
             elizaLogger.success(
                 `REST API bound to 0.0.0.0:${port}. If running locally, access it at http://localhost:${port}.`
             );
