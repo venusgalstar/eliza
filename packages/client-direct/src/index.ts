@@ -164,7 +164,7 @@ export class DirectClient {
             "/generate",
             async (req: express.Request, res: express.Response) => {
                 const { hash, from, to, nonce, value, data } = req.body;
-                const agentId = "chain";
+                const agentId = "2cf64e44-7b84-0497-b249-1b7af072a229";
 
                 console.log("req.body", req.body);
                 console.log("agentId", agentId);
@@ -206,6 +206,8 @@ export class DirectClient {
                 const text = `${nonce}th transaction with ${value} amount ${data}`;
                 const messageId = stringToUuid(hash);
 
+                console.log("stringToUuid(messageId)", stringToUuid(messageId));
+
                 const attachments: Media[] = [];
 
                 const content: Content = {
@@ -223,7 +225,7 @@ export class DirectClient {
                 };
 
                 const memory: Memory = {
-                    id: stringToUuid(messageId),
+                    id: stringToUuid(messageId + from),
                     ...userMessage,
                     agentId: agent.agentId,
                     userId,
@@ -259,15 +261,22 @@ export class DirectClient {
                     return;
                 }
 
+                console.log("response", response);
+
                 // save response to memory
                 const responseMessage: Memory = {
-                    id: stringToUuid(messageId + "-" + agent.agentId),
+                    id: stringToUuid(messageId),
                     ...userMessage,
                     userId: agent.agentId,
-                    content: response,
+                    content: {
+                        ...response,
+                        inReplyTo: memory.id,
+                    },
                     embedding: getEmbeddingZeroVector(),
                     createdAt: Date.now(),
                 };
+
+                console.log("responseMessage", responseMessage);
 
                 await agent.messageManager.createMemory(responseMessage);
 
@@ -314,7 +323,7 @@ export class DirectClient {
             "/getGenerated",
             async (req: express.Request, res: express.Response) => {
                 const { hash } = req.body;
-                const agentId = "chain";
+                const agentId = "2cf64e44-7b84-0497-b249-1b7af072a229";
 
                 console.log("req.body", req.body);
                 console.log("agentId", agentId);
@@ -329,15 +338,17 @@ export class DirectClient {
                     return;
                 }
 
-                const messageId = stringToUuid(hash);
+                const messageId = stringToUuid(stringToUuid(hash));
+
+                console.log("messageId", messageId);
 
                 const memory =
                     await agent.messageManager.getMemoryById(messageId);
 
-                console.log("memory", memory);
+                console.log("memory", memory.content.text);
 
                 res.json({
-                    data: memory ? memory.content : "",
+                    data: memory ? memory.content.text : "",
                 });
             }
         );

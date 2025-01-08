@@ -179,12 +179,18 @@ export class SqliteDatabaseAdapter
         stmt.bind([memoryId]);
         const memory = stmt.get() as Memory | undefined;
 
+        console.log("sql", sql);
+        console.log("memory getMemoryById", memory);
+
         if (memory) {
+            console.log("here????");
             return {
                 ...memory,
                 content: JSON.parse(memory.content as unknown as string),
             };
         }
+
+        console.log("why????");
 
         return null;
     }
@@ -217,7 +223,7 @@ export class SqliteDatabaseAdapter
 
         // Insert the memory with the appropriate 'unique' value
         const sql = `INSERT OR REPLACE INTO memories (id, type, content, embedding, userId, roomId, agentId, \`unique\`, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-        this.db.prepare(sql).run(
+        const res = this.db.prepare(sql).run(
             memory.id ?? v4(),
             tableName,
             content,
@@ -228,6 +234,8 @@ export class SqliteDatabaseAdapter
             isUnique ? 1 : 0,
             createdAt
         );
+
+        console.log("createMemeory res", res);
     }
 
     async searchMemories(params: {

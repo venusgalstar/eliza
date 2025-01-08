@@ -1,8 +1,9 @@
 import { Character, ModelProviderName } from "./types.ts";
 
 export const defaultCharacter: Character = {
-    name: "Eliza",
-    username: "eliza",
+    id: "2cf64e44-7b84-0497-b249-1b7af072a229",
+    name: "chain",
+    username: "chain",
     plugins: [],
     clients: [],
     modelProvider: ModelProviderName.LLAMACLOUD,
