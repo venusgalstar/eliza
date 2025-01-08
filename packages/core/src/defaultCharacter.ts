@@ -9,12 +9,7 @@ export const defaultCharacter: Character = {
     modelProvider: ModelProviderName.LLAMACLOUD,
     modelEndpointOverride: "https://api.together.xyz/v1",
     settings: {
-        secrets: {
-            TOGETHER_API_KEY:
-                "367c3e74004f5089f82fcd0ee00ca0ddd5c2c8fcf2a8f1cad0019509a6495999",
-            OPENAI_API_KEY:
-                "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",
-        },
+        secrets: {},
         voice: {
             model: "en_US-hfc_female-medium",
         },
