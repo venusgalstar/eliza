@@ -1,9 +1,14 @@
 {
     "name": "trump",
-    "clients": [],
-    "modelProvider": "openai",
+    "clients": [
+        "telegram"
+    ],
+    "modelProvider": "llama_cloud",
+    "modelEndpointOverride": "https://api.together.xyz/v1",
     "settings": {
-        "secrets": {},
+        "secrets": {
+            "TELEGRAM_BOT_TOKEN": "7308695146:AAEnSOc9Inbp_-wK6lVMPfeGvRInPARbWWw"
+        },
         "voice": {
             "model": "en_US-male-medium"
         }

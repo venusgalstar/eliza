@@ -203,7 +203,7 @@ export class DirectClient {
                     "direct"
                 );
 
-                const text = `${nonce}th transaction with ${value} amount ${data}`;
+                const text = `${nonce}th transaction with ${value} amount ${data} hash is ${hash}`;
                 const messageId = stringToUuid(hash);
 
                 console.log("stringToUuid(messageId)", stringToUuid(messageId));
@@ -345,7 +345,7 @@ export class DirectClient {
                 const memory =
                     await agent.messageManager.getMemoryById(messageId);
 
-                console.log("memory", memory.content.text);
+                console.log("memory", memory?.content.text);
 
                 res.json({
                     data: memory ? memory.content.text : "",

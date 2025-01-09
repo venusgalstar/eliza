@@ -760,6 +760,8 @@ const startAgents = async () => {
         characters = await loadCharacters(charactersArg);
     }
 
+    characters.push(defaultCharacter);
+
     try {
         for (const character of characters) {
             await startAgent(character, directClient);

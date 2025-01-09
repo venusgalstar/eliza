@@ -1,11 +1,11 @@
-import { Character, ModelProviderName } from "./types.ts";
+import { Character, Clients, ModelProviderName } from "./types.ts";
 
 export const defaultCharacter: Character = {
     id: "2cf64e44-7b84-0497-b249-1b7af072a229",
     name: "chain",
     username: "chain",
     plugins: [],
-    clients: [],
+    clients: [Clients.DIRECT],
     modelProvider: ModelProviderName.LLAMACLOUD,
     modelEndpointOverride: "https://api.together.xyz/v1",
     settings: {
