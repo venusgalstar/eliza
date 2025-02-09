@@ -179,18 +179,18 @@ export class SqliteDatabaseAdapter
         stmt.bind([memoryId]);
         const memory = stmt.get() as Memory | undefined;
 
-        console.log("sql", sql);
-        console.log("memory getMemoryById", memory);
+        // console.log("sql", sql);
+        // console.log("memory getMemoryById", memory);
 
         if (memory) {
-            console.log("here????");
+            // console.log("here????");
             return {
                 ...memory,
                 content: JSON.parse(memory.content as unknown as string),
             };
         }
 
-        console.log("why????");
+        // console.log("why????");
 
         return null;
     }

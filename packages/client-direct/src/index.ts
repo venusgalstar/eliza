@@ -168,6 +168,8 @@ export class DirectClient {
 
                 console.log("req.body", req.body);
                 console.log("agentId", agentId);
+                const timestamp = new Date();
+                console.log("start time", timestamp.getTime());
 
                 let agent = this.agents.get(agentId);
 
@@ -194,6 +196,8 @@ export class DirectClient {
                 );
 
                 const userId = stringToUuid(from ?? "user");
+
+                console.log("ensureConnection end time", new Date().getTime());
 
                 await agent.ensureConnection(
                     userId,
@@ -235,6 +239,7 @@ export class DirectClient {
                 };
 
                 console.log("memory generate", memory);
+                console.log("memory end time", new Date().getTime());
 
                 await agent.messageManager.addEmbeddingToMemory(memory);
                 await agent.messageManager.createMemory(memory);
@@ -248,10 +253,15 @@ export class DirectClient {
                     template: messageHandlerTemplate,
                 });
 
+                console.log(
+                    "generateMessageResponse end time",
+                    new Date().getTime()
+                );
+
                 const response = await generateMessageResponse({
                     runtime: agent,
                     context,
-                    modelClass: ModelClass.LARGE,
+                    modelClass: ModelClass.SMALL,
                 });
 
                 if (!response) {
@@ -261,7 +271,7 @@ export class DirectClient {
                     return;
                 }
 
-                console.log("response", response);
+                // console.log("response", response);
 
                 // save response to memory
                 const responseMessage: Memory = {
@@ -276,7 +286,9 @@ export class DirectClient {
                     createdAt: Date.now(),
                 };
 
-                console.log("responseMessage", responseMessage);
+                // console.log("responseMessage", responseMessage);
+
+                console.log("responseMessage end time", new Date().getTime());
 
                 await agent.messageManager.createMemory(responseMessage);
 
@@ -294,6 +306,8 @@ export class DirectClient {
                     }
                 );
 
+                console.log("processActions end time", new Date().getTime());
+
                 await agent.evaluate(memory, state);
 
                 // Check if we should suppress the initial message
@@ -302,6 +316,8 @@ export class DirectClient {
                 );
                 const shouldSuppressInitialMessage =
                     action?.suppressInitialMessage;
+
+                console.log("end time", new Date().getTime());
 
                 if (!shouldSuppressInitialMessage) {
                     if (message) {

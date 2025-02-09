@@ -183,7 +183,7 @@ export class LlamaService extends Service {
         this.llama = undefined;
         this.model = undefined;
         this.modelUrl =
-            "https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B-GGUF/resolve/main/Hermes-3-Llama-3.1-8B.Q8_0.gguf?download=true";
+            "https://huggingface.co/hugging-quants/Llama-3.2-1B-Instruct-Q4_K_M-GGUF/resolve/main/llama-3.2-1b-instruct-q4_k_m.gguf?download=true";
         const modelName = "model.gguf";
         this.modelPath = path.join(
             process.env.LLAMALOCAL_PATH?.trim() ?? "./",
